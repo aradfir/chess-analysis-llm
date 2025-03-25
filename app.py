@@ -31,7 +31,7 @@ def index():
 
 @app.route("/move", methods=["POST"])
 def move():
-    global old_analysis, latest_analysis
+    global old_analysis, latest_analysis, num_variations, depth_limit
     print("Move")
     try:
         data = request.get_json()
@@ -43,6 +43,8 @@ def move():
     target = data["to"]
     fen = data["fen"]
     old_analysis = latest_analysis
+    print("DEPTHLIMIT", depth_limit)
+    print("NUMVARIATIONS", num_variations)
     res_dict, latest_analysis  = chess_analysis.analyze_board(fen, depth_limit, num_variations)
     return jsonify(res_dict)
 
@@ -59,6 +61,8 @@ def update_engine():
     global num_variations, depth_limit
     num_variations = data["num_variations"]
     depth_limit = data["depth_limit"]
+    print("NUMVARIATIONS SET", num_variations)
+    print("DEPTHLIMIT SET", depth_limit)
     return jsonify({"num_variations": num_variations, "depth_limit": depth_limit})
 
 @app.route("/reset", methods=["POST"])

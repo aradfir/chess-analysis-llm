@@ -264,12 +264,26 @@
           $('#update-engine').click(function() {
               const numLines = $('#num-lines').val();
               const depthLimit = $('#depth-limit').val();
-
-              // Update UI to match number of lines
+              $.ajax({
+                  url: '/update_engine',
+                  type: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  data: JSON.stringify({
+                      num_variations: numLines,
+                      depth_limit: depthLimit
+                  }),
+                  success: function(response) {
+                      console.log('Engine updated successfully:', response);
+                  },
+                  error: function(xhr, status, error) {
+                      console.error('Error updating engine:', error);
+                  }
+              }).then(function() {
+                              // Update UI to match number of lines
               updateAnalysisLines(parseInt(numLines));
-              sendMoveToServer(null, null, game.fen());
-        
-              
+              sendMoveToServer(null, null, game.fen());});
           });
           // Initialize with default number of lines
               // Load FEN button click handler
