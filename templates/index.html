@@ -9,7 +9,21 @@
 </head>
 <body>
     <div style="display: flex; flex-direction: row; align-items: flex-start;">
-        <div id="board" style="width: 400px"></div>
+        <div style="display: flex; flex-direction: column;">
+            <div id="board" style="width: 400px"></div>
+            
+            <!-- Turn indicator and move history -->
+            <div class="game-info" style="margin-top: 15px; width: 400px;">
+                <div class="turn-indicator">
+                    <div id="turn-color" class="color-square"></div>
+                    <span id="turn-text">White to move</span>
+                </div>
+                <div class="move-history-container">
+                    <h4>Move History</h4>
+                    <div id="move-history" class="move-history"></div>
+                </div>
+            </div>
+        </div>
         <div id="analysis-container" style="margin-left: 20px;">
             <div id="analysis-lines">
                 <div class="analysis-line">
@@ -68,7 +82,7 @@
     </div>
     <style>
         #analysis-container {
-            margin-top: 20px;
+            margin-top: 5px;
             width: 900px;
         }
         .analysis-line {
@@ -147,6 +161,62 @@
         .control-btn:hover {
             background-color: #0b7dda;
         }
+
+        .game-info {
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 4px;
+        background-color: #f5f5f5;
+    }
+    
+    .turn-indicator {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .color-square {
+        width: 20px;
+        height: 20px;
+        background-color: white;
+        border: 1px solid #333;
+        margin-right: 10px;
+    }
+    
+    .move-history-container h4 {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+    
+    .move-history {
+        max-height: 150px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        border: 1px solid #ddd;
+        padding: 10px;
+        background-color: white;
+    }
+    
+    .move-number {
+        font-weight: bold;
+        color: #555;
+        margin-right: 5px;
+    }
+    
+    .white-move, .black-move {
+        display: inline-block;
+        margin-right: 10px;
+    }
+    
+    .white-move {
+        margin-right: 5px;
+    }
+    
+    .current-move {
+        background-color: #ffffc0;
+    }
     </style>
 
     <script>
@@ -188,7 +258,9 @@
                 // Set the board and game to the new FEN
                 game.load(fenString);
                 board.position(fenString);
-                
+                 // Update turn indicator and move history
+                updateTurnIndicator();
+                updateMoveHistory();
                 // Send to server for analysis
                 sendMoveToServer(null, null, fenString);
                 
@@ -243,6 +315,8 @@
     }
     updateAnalysisLines(parseInt($('#num-lines').val()));
     sendMoveToServer(null, null, game.fen());
+    updateTurnIndicator();
+    updateMoveHistory();
       });
     
       function onDragStart (source, piece, position, orientation) {
@@ -262,6 +336,27 @@
     
         if (move === null) return 'snapback';
         board.position(game.fen());
+        // Check if the game is over after the move
+        if (game.in_checkmate()) {
+            const winner = game.turn() === 'w' ? 'Black' : 'White';
+            alert(`Checkmate! ${winner} wins!`);
+            return;
+        }
+        if (game.isGameOver()) {
+            let drawReason = 'Stalemate';
+            if (game.in_threefold_repetition()) {
+                drawReason = 'Threefold repetition';
+            } else if (game.insufficient_material()) {
+                drawReason = 'Insufficient material';
+            } else if (game.isDrawByFiftyMoves()) {
+                drawReason = 'Draw by 50-move rule';
+            }
+            alert(`Draw: ${drawReason}`);
+            return;
+        }
+        // Update turn indicator and move history
+    updateTurnIndicator();
+    updateMoveHistory()
         // Send move to server and update analysis
         sendMoveToServer(source, target, game.fen());
           }
@@ -335,6 +430,38 @@ function updateAnalysisLines(numLines) {
     }
 }
 
+function updateTurnIndicator() {
+    const turnColor = game.turn() === 'w' ? 'white' : 'black';
+    const turnText = turnColor.charAt(0).toUpperCase() + turnColor.slice(1) + ' to move';
+    
+    $('#turn-color').css('background-color', turnColor);
+    $('#turn-text').text(turnText);
+}
+
+// Function to update the move history
+function updateMoveHistory() {
+    const history = game.history({ verbose: true });
+    const $moveHistory = $('#move-history');
+    $moveHistory.empty();
+    
+    let html = '';
+    for (let i = 0; i < history.length; i += 2) {
+        const moveNumber = Math.floor(i / 2) + 1;
+        const whiteMove = history[i];
+        const blackMove = history[i + 1];
+        
+        html += `<div class="history-row">`;
+        html += `<span class="move-number">${moveNumber}.</span>`;
+        html += `<span class="white-move">${whiteMove ? whiteMove.san : ''}</span>`;
+        html += `<span class="black-move">${blackMove ? blackMove.san : ''}</span>`;
+        html += `</div>`;
+    }
+    
+    $moveHistory.html(html);
+    
+    // Scroll to bottom to show latest moves
+    $moveHistory.scrollTop($moveHistory[0].scrollHeight);
+}
 function sendMoveToServer(source, target, fen) {
         const data = JSON.stringify({
             from: source,
@@ -358,17 +485,28 @@ function sendMoveToServer(source, target, fen) {
             // and "score" (whih is the material advantage), and "line" as string
             // Update analysis lines with the response data
             if (response && response.variations && Array.isArray(response.variations)) {
+                updateAnalysisLines(response.variations.length);
                 response.variations.forEach((variation, index) => {
                 const $line = $('#analysis-lines .analysis-line').eq(index);
                 
                 if (variation) {
                     // Format material advantage score
-                    let scoreText = variation.score > 0 ? '+' + variation.score : variation.score;
+                    // variation score is either in pawns, or if mate itll be a string formatted as MW# or MB#
+                    let scoreText;
+                    if (typeof variation.score === 'string' && variation.score.startsWith('M')) {
+                        // Handle mate score (MW# or MB#)
+                        const mateType = variation.score.charAt(1); // W or B
+                        const mateIn = variation.score.substring(2);
+                        scoreText = mateType === 'W' ? `White mate in ${mateIn}` : `Black mate in ${mateIn}`;
+                    } else {
+                        // Handle regular numerical score
+                        scoreText = variation.score > 0 ? '+' + variation.score : variation.score;
+                    }
                     
                     // Update the elements within the line
                     $line.find('.material-advantage').text(scoreText);
                     $line.find('.win-chance').text(
-                    `W: ${variation.wdl_white}% D: ${variation.wdl_draw}% B: ${variation.wdl_black}%`
+                    `W: ${variation.wdl_white} D: ${variation.wdl_draw} B: ${variation.wdl_black}`
                     );
                     $line.find('.continuation').text(variation.line);
                     
