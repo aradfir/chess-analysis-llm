@@ -342,7 +342,7 @@
             alert(`Checkmate! ${winner} wins!`);
             return;
         }
-        if (game.isGameOver()) {
+        if (game.game_over()) {
             let drawReason = 'Stalemate';
             if (game.in_threefold_repetition()) {
                 drawReason = 'Threefold repetition';
