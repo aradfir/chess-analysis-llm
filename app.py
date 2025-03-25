@@ -27,6 +27,27 @@ def index():
     board = get_board()
     return render_template("index.html", fen=board.fen())
 
+def handle_mate_score(pov_score: chess.engine.PovScore):
+    if not pov_score.is_mate():
+        return None
+    mate_num = pov_score.white().mate()
+    mate_num = abs(mate_num)
+    # the mate_num is in the pov of the player who's turn it is
+    is_white_turn = pov_score.turn == chess.WHITE
+
+    if is_white_turn:
+        if pov_score.white().mate() > 0:
+            return f"MW{mate_num}"
+        else:
+            return f"MB{mate_num}"
+    else:
+        if pov_score.black().mate() > 0:
+            return f"MB{mate_num}"
+        else:
+            return f"MW{mate_num}"
+
+
+
 @app.route("/move", methods=["POST"])
 def move():
     print("Move")
@@ -55,15 +76,29 @@ def move():
         print(variation.keys())
         pov_score: chess.engine.PovScore = variation["score"]
         pov_wdl: chess.engine.PovWdl = pov_score.wdl()
-        
         var_dict = {
-            "score": pov_score.white().score()/100,
-            "wdl_white": pov_wdl.white().winning_chance() * 100,
-            "wdl_black": pov_wdl.black().winning_chance() * 100,
-            "wdl_draw": pov_wdl.black().drawing_chance() * 100,
-            "best_move": variation["pv"][0].uci(),
+                "best_move": variation["pv"][0].uci(),
         }
-        print(f"\nVariation {idx + 1} (Score: {variation['score']}):")
+
+        if not pov_score.is_mate():
+            var_dict["score"] = pov_score.white().score()/100
+        else:
+            var_dict["score"] = handle_mate_score(pov_score)
+
+        if pov_wdl.white().winning_chance():
+            wdl_dict = {
+                "wdl_white": f"{pov_wdl.white().winning_chance() * 100}%",
+                "wdl_black": f"{pov_wdl.black().winning_chance() * 100}%",
+                "wdl_draw": f"{pov_wdl.white().drawing_chance() * 100}%",
+            }
+        else:
+            wdl_dict = {
+                "wdl_white": "Novelty",
+                "wdl_black": "Novelty",
+                "wdl_draw": "Novelty",
+            }
+        var_dict.update(wdl_dict)
+        # print(f"\nVariation {idx + 1} (Score: {variation['score']}):")
         board_copy = board.copy()
         line_moves_str = ""
         for move_made in variation["pv"]:
