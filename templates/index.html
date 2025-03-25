@@ -57,6 +57,15 @@
             <button id="update-engine" class="update-btn">Update Engine</button>
         </div>
     </div>
+
+    <!-- Add position control buttons -->
+    <div class="position-controls" style="margin-top: 20px;">
+        <h4>Position Controls</h4>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <button id="load-fen" class="control-btn">Load from FEN</button>
+            <button id="copy-fen" class="control-btn">Copy FEN to Clipboard</button>
+        </div>
+    </div>
     <style>
         #analysis-container {
             margin-top: 20px;
@@ -106,6 +115,38 @@
         .update-btn:hover {
             background-color: #45a049;
         }
+
+        .update-btn:hover {
+            background-color: #45a049;
+        }
+        
+        /* Position control buttons */
+        .position-controls {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+        
+        .position-controls h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .control-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .control-btn:hover {
+            background-color: #0b7dda;
+        }
     </style>
 
     <script>
@@ -133,6 +174,73 @@
               
           });
           // Initialize with default number of lines
+              // Load FEN button click handler
+    $('#load-fen').click(function() {
+        const fenString = prompt("Enter FEN string:");
+        if (!fenString) return; // User cancelled
+        
+        // Validate FEN
+        try {
+            const tempGame = new Chess();
+            const isValid = tempGame.load(fenString);
+            
+            if (isValid) {
+                // Set the board and game to the new FEN
+                game.load(fenString);
+                board.position(fenString);
+                
+                // Send to server for analysis
+                sendMoveToServer(null, null, fenString);
+                
+                // Clear any highlights
+                removeLegalityHighlights();
+            } else {
+                alert("Invalid FEN string. Please check and try again.");
+            }
+        } catch (error) {
+            alert("Invalid FEN string. Please check and try again.");
+            console.error("FEN loading error:", error);
+        }
+    });
+    
+    // Copy FEN button click handler
+    $('#copy-fen').click(function() {
+        const currentFen = game.fen();
+        
+        // Use navigator clipboard API if available
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(currentFen)
+                .then(() => {
+                    alert("FEN copied to clipboard: " + currentFen);
+                })
+                .catch(err => {
+                    console.error('Could not copy text: ', err);
+                    // Fallback
+                    promptForCopy(currentFen);
+                });
+        } else {
+            // Fallback for browsers without clipboard API
+            promptForCopy(currentFen);
+        }
+    });
+    
+    // Helper function for older browsers
+    function promptForCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            alert("FEN copied to clipboard: " + text);
+        } catch (err) {
+            console.error('Failed to copy', err);
+            alert("Couldn't copy automatically. Here's the FEN to copy manually: " + text);
+        }
+        
+        document.body.removeChild(textarea);
+    }
     updateAnalysisLines(parseInt($('#num-lines').val()));
     sendMoveToServer(null, null, game.fen());
       });
