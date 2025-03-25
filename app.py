@@ -4,6 +4,7 @@ import chess.engine
 import os
 
 import chess_analysis
+import llm_integration
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Required for session handling
@@ -13,6 +14,7 @@ num_variations = 3
 depth_limit = 20
 
 latest_analysis = None
+old_analysis = None
 
 
 def get_board():
@@ -29,7 +31,7 @@ def index():
 
 @app.route("/move", methods=["POST"])
 def move():
-    global latest_analysis
+    global old_analysis, latest_analysis
     print("Move")
     try:
         data = request.get_json()
@@ -40,9 +42,16 @@ def move():
     source = data["from"]
     target = data["to"]
     fen = data["fen"]
-    
+    old_analysis = latest_analysis
     res_dict, latest_analysis  = chess_analysis.analyze_board(fen, depth_limit, num_variations)
     return jsonify(res_dict)
+
+@app.route("/generate_commentary", methods=["GET"])
+def generate_commentary():
+    global latest_analysis
+    if latest_analysis is None:
+        return jsonify({"commentary": "No analysis available."})
+    return jsonify({"commentary": llm_integration.mock_get_commentary(old_analysis, latest_analysis)})
 
 @app.route("/update_engine", methods=["POST"])
 def update_engine():
