@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess Board</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js" integrity="sha384-s3XgLpvmHyscVpijnseAmye819Ee3yaGa8NxstkJVyA6nuDFjt59u1QvuEl/mecz" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static',filename='chessboardjs/js/chessboard-1.0.0.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static',filename='chessboardjs/css/chessboard-1.0.0.css') }}">
+</head>
+<body>
+    <div style="display: flex; flex-direction: row; align-items: flex-start;">
+        <div id="board" style="width: 400px"></div>
+        <div id="analysis-container" style="margin-left: 20px;">
+            <div id="analysis-lines">
+                <div class="analysis-line">
+                    <span class="material-advantage">???</span>
+                    <span class="win-chance">W: ??% D: ??% B: ??%</span>
+                    <span class="continuation">Loading analysis...</span>
+                </div>
+                <div class="analysis-line">
+                    <span class="material-advantage">???</span>
+                    <span class="win-chance">W: ??% D: ??% B: ??%</span>
+                    <span class="continuation">Loading analysis...</span>
+                </div>
+                <div class="analysis-line">
+                    <span class="material-advantage">???</span>
+                    <span class="win-chance">W: ??% D: ??% B: ??%</span>
+                    <span class="continuation">Loading analysis...</span>
+                </div>
+                <div class="analysis-line">
+                    <span class="material-advantage">???</span>
+                    <span class="win-chance">W: ??% D: ??% B: ??%</span>
+                    <span class="continuation">Loading analysis...</span>
+                </div>
+                <div class="analysis-line">
+                    <span class="material-advantage">???</span>
+                    <span class="win-chance">W: ??% D: ??% B: ??%</span>
+                    <span class="continuation">Loading analysis...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Add engine settings form here -->
+    <div class="engine-settings" style="margin-top: 20px;">
+        <h4>Engine Settings</h4>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div>
+                <label for="num-lines">Number of lines:</label>
+                <input type="number" id="num-lines" min="1" max="10" value="3" style="width: 60px;">
+            </div>
+            <div>
+                <label for="depth-limit">Depth limit:</label>
+                <input type="number" id="depth-limit" min="1" max="40" value="20" style="width: 60px;">
+            </div>
+            <button id="update-engine" class="update-btn">Update Engine</button>
+        </div>
+    </div>
+    <style>
+        #analysis-container {
+            margin-top: 20px;
+            width: 900px;
+        }
+        .analysis-line {
+            padding: 5px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .material-advantage {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .win-chance {
+            color: #555;
+            margin-right: 10px;
+        }
+        .continuation {
+            display: block;
+            margin-top: 5px;
+        }
+         /* New styles */
+         .engine-settings {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f5f5f5;
+            max-width: 500px;
+        }
+        
+        .engine-settings h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .update-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .update-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+
+    <script>
+      const board = Chessboard('board', {
+        draggable: true,
+        position: 'start',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onMouseoverSquare: onMouseoverSquare,
+        onMouseoutSquare: onMouseoutSquare
+      });
+    
+      const game = new Chess();
+
+      // Add event listener for the update engine button
+      $(document).ready(function() {
+          $('#update-engine').click(function() {
+              const numLines = $('#num-lines').val();
+              const depthLimit = $('#depth-limit').val();
+
+              // Update UI to match number of lines
+              updateAnalysisLines(parseInt(numLines));
+              sendMoveToServer(null, null, game.fen());
+        
+              
+          });
+          // Initialize with default number of lines
+    updateAnalysisLines(parseInt($('#num-lines').val()));
+    sendMoveToServer(null, null, game.fen());
+      });
+    
+      function onDragStart (source, piece, position, orientation) {
+  // do not pick up pieces if the game is over
+  if (game.game_over()) return false
+
+  // only pick up pieces for the side to move
+  if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+      (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+    return false
+  }
+}
+    
+      function onDrop(source, target) {
+        removeLegalityHighlights();
+        const move = game.move({ from: source, to: target, promotion: 'q' });
+    
+        if (move === null) return 'snapback';
+        board.position(game.fen());
+        // Send move to server and update analysis
+        sendMoveToServer(source, target, game.fen());
+          }
+        
+               function onMouseoverSquare(square, piece) {
+        // Get all legal moves for the hovered square
+        const moves = game.moves({
+          square: square,
+          verbose: true
+        });
+    
+        if (moves.length === 0) return;
+    
+        // Highlight the square and the targets
+        highlightSquare(square, 'rgba(02, 0, 255, 0.4)');
+        moves.forEach(move => highlightSquare(move.to));
+      }
+    
+      function onMouseoutSquare(square, piece) {
+        removeLegalityHighlights();
+      }
+    
+      function highlightSquare(square, highlight_color = '#d1b3ff') {
+        const $square = $('#board .square-' + square);
+        
+        $square.css(
+            {
+               background: highlight_color,
+                 outline: '2px solid #888',
+                 'box-shadow': 'inset 0 0 0 3px #888'  // Gray border inside the square
+            }
+        );
+      }
+    
+      function removeLegalityHighlights() {
+
+        clear_css = {
+            background: '',
+            'box-shadow': '',
+            outline: ''
+        }
+        $('#board .square-55d63').css(clear_css);
+        $('#board .square-1e1d7').css(clear_css);
+        $('#board .square-3c3f4').css(clear_css);
+        $('#board .square-769656').css(clear_css);
+        $('#board .square-baca44').css(clear_css);
+        $('#board .square-a9a9a9').css(clear_css);
+        $('#board .square').css(clear_css);
+        }
+
+        // Function to update the number of analysis lines in the UI
+function updateAnalysisLines(numLines) {
+    const $container = $('#analysis-lines');
+    const currentLines = $container.find('.analysis-line').length;
+    
+    // If we need more lines, add them
+    if (numLines > currentLines) {
+        for (let i = currentLines; i < numLines; i++) {
+            $container.append(`
+                <div class="analysis-line">
+                    <span class="material-advantage">???</span>
+                    <span class="win-chance">W: ??% D: ??% B: ??%</span>
+                    <span class="continuation">Loading analysis...</span>
+                </div>
+            `);
+        }
+    } 
+    // If we need fewer lines, remove extras
+    else if (numLines < currentLines) {
+        $container.find('.analysis-line').slice(numLines).remove();
+    }
+}
+
+function sendMoveToServer(source, target, fen) {
+        const data = JSON.stringify({
+            from: source,
+            to: target,
+            promotion: 'q',
+            fen: fen
+        });
+        
+        // Make an AJAX request to the server with move details
+        $.ajax({
+            url: '/move',
+            type: 'POST',
+            headers: {
+            'Content-Type': 'application/json'
+            },
+            data: data,
+            success: function(response) {
+            console.log('Move recorded successfully:', response);
+            // response will contain variations as array of 5
+            // each containing "wdl_white" and "wdl_black", "wdl_draw"
+            // and "score" (whih is the material advantage), and "line" as string
+            // Update analysis lines with the response data
+            if (response && response.variations && Array.isArray(response.variations)) {
+                response.variations.forEach((variation, index) => {
+                const $line = $('#analysis-lines .analysis-line').eq(index);
+                
+                if (variation) {
+                    // Format material advantage score
+                    let scoreText = variation.score > 0 ? '+' + variation.score : variation.score;
+                    
+                    // Update the elements within the line
+                    $line.find('.material-advantage').text(scoreText);
+                    $line.find('.win-chance').text(
+                    `W: ${variation.wdl_white}% D: ${variation.wdl_draw}% B: ${variation.wdl_black}%`
+                    );
+                    $line.find('.continuation').text(variation.line);
+                    
+                    // Optionally highlight positive/negative scores
+                    if (variation.score > 0) {
+                    $line.find('.material-advantage').css('color', '#006400'); // Dark green
+                    } else if (variation.score < 0) {
+                    $line.find('.material-advantage').css('color', '#8B0000'); // Dark red
+                    } else {
+                    $line.find('.material-advantage').css('color', '#000'); // Black
+                    }
+                }
+                });
+            }
+            },
+            error: function(xhr, status, error) {
+            console.error('Error recording move:', error);
+            }
+        });
+          }
+
+    </script>
+</body>
+</html>
