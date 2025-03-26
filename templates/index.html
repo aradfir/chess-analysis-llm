@@ -250,7 +250,6 @@
     <script>
 
 let commentarySource = null;
-
 function fetchStreamingCommentary() {
     // Close any existing connection
     if (commentarySource) {
@@ -269,12 +268,20 @@ function fetchStreamingCommentary() {
         if (data.commentary) {
             $('#commentary').text(data.commentary);
         }
+        
+        // Check if this is the final message
+        if (data.complete === true) {
+            console.log("Commentary stream complete");
+            commentarySource.close();
+        }
     };
     
     // Handle errors
     commentarySource.onerror = function(error) {
         console.error('Commentary stream error:', error);
         commentarySource.close();
+        $('#commentary').text($('#commentary').text() + 
+            "\n\n[Commentary stream ended or encountered an error]");
     };
 }
       const board = Chessboard('board', {
@@ -428,7 +435,6 @@ function fetchStreamingCommentary() {
         // Get the SAN notation of the last move
         const moveHistory = game.history();
         const lastSanMove = moveHistory[moveHistory.length - 1];
-        print(lastSanMove);
         // Update turn indicator and move history
     updateTurnIndicator();
     updateMoveHistory()

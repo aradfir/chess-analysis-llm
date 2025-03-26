@@ -68,18 +68,26 @@ def generate_commentary():
         # Initialize an empty string to accumulate the response
         commentary_text = ""
         
-        # Iterate through the streaming response
-        for chunk in response_stream:
-            # Add new content to the accumulated text
-            new_content = chunk['response']
-            commentary_text += new_content
-            
-            # Yield the current accumulated text as a server-sent event
-            yield f"data: {json.dumps({'commentary': commentary_text})}\n\n"
+        try:
+            # Iterate through the streaming response
+            for chunk in response_stream:
+                # Add new content to the accumulated text
+                new_content = chunk['response']
+                commentary_text += new_content
+                
+                # Yield the current accumulated text as a server-sent event
+                yield f"data: {json.dumps({'commentary': commentary_text})}\n\n"
+                
+            # Send a final message to signal completion
+            yield f"data: {json.dumps({'commentary': commentary_text, 'complete': True})}\n\n"
+        except Exception as e:
+            print(f"Error in commentary stream: {e}")
+            # Send error information in the stream
+            yield f"data: {json.dumps({'commentary': commentary_text, 'error': str(e), 'complete': True})}\n\n"
     
     # Return a streaming response
     return Response(stream_with_context(generate()), 
-                    content_type='text/event-stream')
+                   content_type='text/event-stream')
 
 @app.route("/update_engine", methods=["POST"])
 def update_engine():
