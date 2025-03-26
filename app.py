@@ -14,7 +14,7 @@ app.secret_key = os.urandom(24)  # Required for session handling
 num_variations = 3
 depth_limit = 20
 
-latest_analysis = None
+latest_analysis:dict = None
 old_analysis = None
 
 
@@ -48,7 +48,14 @@ def move():
         # board was reset or FEN was loaded
         last_san = None
         old_analysis = None
-    old_analysis = latest_analysis
+    if latest_analysis is not None:
+        old_analysis = latest_analysis.copy()
+        old_analysis.pop("variations", None)
+    else:
+        old_analysis = None
+    
+    # remove variations from old analysis to avoid confusion
+    
     print("DEPTHLIMIT", depth_limit)
     print("NUMVARIATIONS", num_variations)
     res_dict, latest_analysis  = chess_analysis.analyze_board(fen, depth_limit, num_variations, last_san)

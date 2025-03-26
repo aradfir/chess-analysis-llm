@@ -82,6 +82,7 @@ def get_prompt(old_analysis, latest_analysis):
     Use chess terms in your commentary in a way relevant to the position. Justify why the given continuations are good, and feel free the look at the moves later in the continuation.
     If the previous analysis's score is much different from the current one, mention that as well, as it could be a blunder.
     Note that the current score is always equal to the score of the first variation, as it is the best move; so no need to mention that.
+    Note that you should compare the old analysis's best move, with the current analysis's latest move, as the latest move is what the player played. For example, if the best move of the previous analysis is the same as the new latest move, you can mention that the player played the best move.
     Current Analysis: {latest_analysis}
     Old analysis: {old_analysis}
     Respond only with your commentary, and no other information (such as "Lets dive into the position", "okay, Here is the commentary", the current board, etc) as this isnt the first position you are analyzing. Respond in a manner as if you're talking.
