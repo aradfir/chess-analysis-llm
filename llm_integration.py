@@ -80,8 +80,10 @@ def get_prompt(old_analysis, latest_analysis):
     Sometimes the score is MWx or MBx, which means mate in x moves for white or black respectively.
     If the evaluation for the top line is very different from the second line, or the first line is the only one that keeps the advantage, this is called a critical position and you should mention that if that is the case.
     Use chess terms in your commentary in a way relevant to the position. Justify why the given continuations are good, and feel free the look at the moves later in the continuation.
-    Analysis: {latest_analysis}
-    Respond only with your commentary, and no other information (such as "okay, Here is the commentary", the current board, etc).
+    If the previous analysis's score is much different from the current one, mention that as well, as it could be a blunder.
+    Current Analysis: {latest_analysis}
+    Old analysis: {old_analysis}
+    Respond only with your commentary, and no other information (such as "okay, Here is the commentary", the current board, etc). Respond in a manner as if you're talking.
     """
 
 def get_commentary(old_analysis, latest_analysis):

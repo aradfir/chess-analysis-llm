@@ -396,11 +396,15 @@
             alert(`Draw: ${drawReason}`);
             return;
         }
+        // Get the SAN notation of the last move
+        const moveHistory = game.history();
+        const lastSanMove = moveHistory[moveHistory.length - 1];
+        print(lastSanMove);
         // Update turn indicator and move history
     updateTurnIndicator();
     updateMoveHistory()
         // Send move to server and update analysis
-        sendMoveToServer(source, target, game.fen());
+        sendMoveToServer(source, target, game.fen(), lastSanMove.toString());
           }
         
                function onMouseoverSquare(square, piece) {
@@ -504,12 +508,13 @@ function updateMoveHistory() {
     // Scroll to bottom to show latest moves
     $moveHistory.scrollTop($moveHistory[0].scrollHeight);
 }
-function sendMoveToServer(source, target, fen) {
+function sendMoveToServer(source, target, fen, last_san = "") {
         const data = JSON.stringify({
             from: source,
             to: target,
             promotion: 'q',
-            fen: fen
+            fen: fen,
+            last_san: last_san
         });
         
         // Make an AJAX request to the server with move details

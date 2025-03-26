@@ -42,10 +42,15 @@ def move():
     source = data["from"]
     target = data["to"]
     fen = data["fen"]
+    last_san = data["last_san"]
+    if last_san == "":
+        # board was reset or FEN was loaded
+        last_san = None
+        old_analysis = None
     old_analysis = latest_analysis
     print("DEPTHLIMIT", depth_limit)
     print("NUMVARIATIONS", num_variations)
-    res_dict, latest_analysis  = chess_analysis.analyze_board(fen, depth_limit, num_variations)
+    res_dict, latest_analysis  = chess_analysis.analyze_board(fen, depth_limit, num_variations, last_san)
     return jsonify(res_dict)
 
 @app.route("/generate_commentary", methods=["GET"])
