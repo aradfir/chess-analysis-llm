@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, session
+import json
+from flask import Flask, Response, render_template, request, jsonify, session, stream_with_context
 import chess
 import chess.engine
 import os
@@ -53,12 +54,32 @@ def move():
     res_dict, latest_analysis  = chess_analysis.analyze_board(fen, depth_limit, num_variations, last_san)
     return jsonify(res_dict)
 
+
 @app.route("/generate_commentary", methods=["GET"])
 def generate_commentary():
     global latest_analysis
     if latest_analysis is None:
         return jsonify({"commentary": "No analysis available."})
-    return jsonify({"commentary": llm_integration.get_commentary(old_analysis, latest_analysis)})
+    
+    # Get streaming response
+    response_stream = llm_integration.get_commentary(old_analysis, latest_analysis)
+    
+    def generate():
+        # Initialize an empty string to accumulate the response
+        commentary_text = ""
+        
+        # Iterate through the streaming response
+        for chunk in response_stream:
+            # Add new content to the accumulated text
+            new_content = chunk['response']
+            commentary_text += new_content
+            
+            # Yield the current accumulated text as a server-sent event
+            yield f"data: {json.dumps({'commentary': commentary_text})}\n\n"
+    
+    # Return a streaming response
+    return Response(stream_with_context(generate()), 
+                    content_type='text/event-stream')
 
 @app.route("/update_engine", methods=["POST"])
 def update_engine():

@@ -85,16 +85,20 @@ def get_prompt(old_analysis, latest_analysis):
     Old analysis: {old_analysis}
     Respond only with your commentary, and no other information (such as "okay, Here is the commentary", the current board, etc). Respond in a manner as if you're talking.
     """
-
 def get_commentary(old_analysis, latest_analysis):
     print("Getting commentary?")
     prompt = get_prompt(old_analysis, latest_analysis)
     print("Got prompt")
-    print(prompt)
-    response = ollama.generate("gemma3:12b",prompt,)
-    print("Got commentary")
-    print(response.response)
-    return response.response
+    
+    # Use streaming option with ollama
+    response_stream = ollama.generate(
+        "gemma3:12b",
+        prompt,
+        stream=True
+    )
+    
+    # Return the stream object instead of the final response
+    return response_stream
 
 def mock_get_commentary(old_analysis, latest_analysis):
     global num

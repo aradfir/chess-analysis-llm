@@ -248,6 +248,35 @@
     </style>
 
     <script>
+
+let commentarySource = null;
+
+function fetchStreamingCommentary() {
+    // Close any existing connection
+    if (commentarySource) {
+        commentarySource.close();
+    }
+    
+    // Clear current commentary
+    $('#commentary').text("Loading commentary...");
+    
+    // Create new EventSource connection
+    commentarySource = new EventSource('/generate_commentary');
+    
+    // Handle incoming commentary chunks
+    commentarySource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.commentary) {
+            $('#commentary').text(data.commentary);
+        }
+    };
+    
+    // Handle errors
+    commentarySource.onerror = function(error) {
+        console.error('Commentary stream error:', error);
+        commentarySource.close();
+    };
+}
       const board = Chessboard('board', {
         draggable: true,
         position: 'start',
@@ -575,20 +604,7 @@ function sendMoveToServer(source, target, fen, last_san = "") {
             }
         }).then(function() {
             // Fetch commentary after analysis is processed
-            $.ajax({
-                url: '/generate_commentary',
-                type: 'GET',
-                success: function(commentaryData) {
-                    if (commentaryData && commentaryData.commentary) {
-                        console.log('Commentary received:', commentaryData.commentary);
-                        // Display the commentary in the UI
-                        $('#commentary').text(commentaryData.commentary);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error fetching commentary:', error);
-                }
-            });
+            fetchStreamingCommentary();
         });
           }
 
