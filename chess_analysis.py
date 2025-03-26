@@ -43,6 +43,7 @@ def analyze_board(fen, depth_limit, num_variations):
     best_move_san = board.san(best_move)  # Standard Algebraic Notation
     # Iterate over the variations
     variations = []
+    prompt_variations = []
     
     for idx, variation in enumerate(analysed_variations):
         print(variation.keys())
@@ -56,7 +57,7 @@ def analyze_board(fen, depth_limit, num_variations):
             var_dict["score"] = pov_score.white().score()/100
         else:
             var_dict["score"] = handle_mate_score(pov_score)
-
+        prompt_var_dict = var_dict.copy()
         if pov_wdl.white().winning_chance() or pov_wdl.white().losing_chance():
             wdl_dict = {
                 "wdl_white": f"{pov_wdl.white().winning_chance() * 100}%",
@@ -70,17 +71,22 @@ def analyze_board(fen, depth_limit, num_variations):
                 "wdl_draw": "Novelty",
             }
         var_dict.update(wdl_dict)
+        
         # print(f"\nVariation {idx + 1} (Score: {variation['score']}):")
         board_copy = board.copy()
-        line_moves_str = ""
+        
+        line_moves = []
         for move_made in variation["pv"]:
             piece = board_copy.piece_at(move_made.from_square)
             san = board_copy.san(move_made)  # Standard Algebraic Notation
-            line_moves_str += f"{board_copy.fullmove_number}. {san} ({piece.unicode_symbol()}{move_made.uci()})"
+            line_moves.append(f"{board_copy.fullmove_number}. {san} ({piece.unicode_symbol()}{move_made.uci()})")
+            
             # print(f"{board_copy.fullmove_number}. {san} ({piece.symbol().upper()} from {move.uci()[:2]} to {move.uci()[2:]})")
             board_copy.push(move_made)
-        var_dict["line"] = line_moves_str
+        var_dict["line"] = " ".join(line_moves)
+        prompt_var_dict["line"] = " ".join(line_moves[:5])
         variations.append(var_dict)
+        prompt_variations.append(prompt_var_dict)
     
     frontend_dict = {
         "best_move": best_move.uci(),
@@ -88,6 +94,17 @@ def analyze_board(fen, depth_limit, num_variations):
         "best_move_piece": best_move_piece.unicode_symbol(),
         "variations": variations,
     }
-    analysis_dict = {}
+    analysis_dict = {
+        "best next move": best_move.uci(),
+        "best next move San": best_move_san,
+        "best next move Piece": chess.piece_name(best_move_piece.piece_type),
+        "current turn": "White" if board.turn == chess.WHITE else "Black",
+        "FEN": board.fen(),
+        "Board Representation": str(board),
+        "Current Score": variations[0]["score"],
+        "variations": prompt_variations,
+    }
+
+
 
     return frontend_dict, analysis_dict
