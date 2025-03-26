@@ -57,7 +57,7 @@ def analyze_board(fen, depth_limit, num_variations):
         else:
             var_dict["score"] = handle_mate_score(pov_score)
 
-        if pov_wdl.white().winning_chance():
+        if pov_wdl.white().winning_chance() or pov_wdl.white().losing_chance():
             wdl_dict = {
                 "wdl_white": f"{pov_wdl.white().winning_chance() * 100}%",
                 "wdl_black": f"{pov_wdl.black().winning_chance() * 100}%",

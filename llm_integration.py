@@ -64,8 +64,31 @@
 
 import time
 
-
+import ollama
 num = 0
+
+
+def get_prompt(old_analysis, latest_analysis):
+    return f"""
+    You are a chess caster, commentator and analyst.
+    You have to provide analysis on the latest move, as well as the current possition.
+    You are given the position as a FEN string, as well as an ascii represntation,
+    where the pieces are represented by their standard algebraic notation letters (e.g., K for king, Q for queen, R for rook, B for bishop, N for knight, and no letter for pawn) and empty squares represented by dots.
+    Upper case letters represent white pieces, and lower case letters represent black pieces.
+    You are also provided who's turn it is, the best move, the best move piece, the current score, multiple lines of continuation, which are ordered by the best moves in order for the current player.
+    These lines also have the score of the position from the perspective of white in pawns, meaning a +1.5 means the position is 1.5 pawns better for white.
+    Sometimes the score is MWx or MBx, which means mate in x moves for white or black respectively.
+    If the evaluation for the top line is very different from the second line, or the first line is the only one that keeps the advantage, this is called a critical position and you should mention that.
+    Use chess terms in your commentary in a way relevant to the position. Justify why the given continuations are good, and feel free the look at the moves later in the continuation.
+    Analysis: {latest_analysis}
+    Respond only with your commentary, and no other information (such as "okay, Here is the commentary").
+    """
+
+def get_commentary(old_analysis, latest_analysis):
+    print("Getting commentary?")
+    response = ollama.generate("gemma3:4b", get_prompt(old_analysis, latest_analysis))
+    print("Got commentary")
+    return response.response
 
 def mock_get_commentary(old_analysis, latest_analysis):
     global num

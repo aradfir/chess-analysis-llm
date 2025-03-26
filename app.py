@@ -53,7 +53,7 @@ def generate_commentary():
     global latest_analysis
     if latest_analysis is None:
         return jsonify({"commentary": "No analysis available."})
-    return jsonify({"commentary": llm_integration.mock_get_commentary(old_analysis, latest_analysis)})
+    return jsonify({"commentary": llm_integration.get_commentary(old_analysis, latest_analysis)})
 
 @app.route("/update_engine", methods=["POST"])
 def update_engine():
