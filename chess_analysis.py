@@ -65,7 +65,9 @@ def analyze_board(fen, depth_limit, num_variations, last_move):
         )
     
     last_move_san = last_move
-    last_move_turn = "White" if board.turn == chess.BLACK else "Black"
+    last_move_turn = "New Game"
+    if last_move != "":
+        last_move_turn = "White" if board.turn == chess.BLACK else "Black"
 
     best_move = analysed_variations[0]["pv"][0]
     best_move_piece = board.piece_at(best_move.from_square)
