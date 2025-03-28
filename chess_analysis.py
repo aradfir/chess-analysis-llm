@@ -9,6 +9,17 @@ empty_board = chess.Board()
 
 last_eval = stockfish.analyse(empty_board, chess.engine.Limit(depth=20))
 
+def add_row_column_numbers(board_str):
+    # Add row numbers
+    rows = board_str.split("\n")
+    for i in range(len(rows)):
+        rows[i] = f"{8-i}| {rows[i]}"
+    # Add column numbers
+    seperator = " +-----------------+"
+    column_numbers = "   A B C D E F G H"
+    return "\n".join(rows) + f"\n{seperator}\n" + column_numbers
+
+
 def handle_mate_score(pov_score: chess.engine.PovScore):
     if not pov_score.is_mate():
         return None
@@ -65,8 +76,10 @@ def analyze_board(fen, depth_limit, num_variations, last_move):
         )
     
     last_move_san = last_move
+    if last_move is None:
+        last_move_san = "No last move, as first Move of game!"
     last_move_turn = "New Game"
-    if last_move != "":
+    if last_move is not None:
         last_move_turn = "White" if board.turn == chess.BLACK else "Black"
 
     best_move = analysed_variations[0]["pv"][0]
@@ -88,7 +101,7 @@ def analyze_board(fen, depth_limit, num_variations, last_move):
             var_dict["score"] = pov_score.white().score()/100
         else:
             var_dict["score"] = handle_mate_score(pov_score)
-        prompt_var_dict = var_dict.copy()
+        
         if pov_wdl.white().winning_chance() or pov_wdl.white().losing_chance():
             wdl_dict = {
                 "wdl_white": f"{pov_wdl.white().winning_chance() * 100}%",
@@ -102,7 +115,7 @@ def analyze_board(fen, depth_limit, num_variations, last_move):
                 "wdl_draw": "Novelty",
             }
         var_dict.update(wdl_dict)
-        
+        prompt_var_dict = var_dict.copy()
         # print(f"\nVariation {idx + 1} (Score: {variation['score']}):")
         board_copy = board.copy()
         
@@ -127,21 +140,27 @@ def analyze_board(fen, depth_limit, num_variations, last_move):
     }
     
     analysis_dict = {
-        "best next move": best_move.uci(),
-        "best next move San": best_move_san,
-        "best next move Piece": chess.piece_name(best_move_piece.piece_type),
+        
+        # "calculated best move": best_move.uci(),
+        # "calculated best move SAN": best_move_san,
+
+        # "calculated best move Piece": chess.piece_name(best_move_piece.piece_type),
         "current turn": "White" if board.turn == chess.WHITE else "Black",
-        "latest move": last_move_san,
-        "latest move done by": last_move_turn,
-        "FEN": board.fen(),
-        "Board Representation": str(board),
+        "Board Representation": add_row_column_numbers(str(board)),
         "Current Score": variations[0]["score"],
-        "variations": prompt_variations,
+        "engine analysis future continuations": prompt_variations,
         "game stage": get_game_stage(board),
         "check": board.is_check(),
         "move number": board.fullmove_number,
     }
-
-
+    if last_move is not None:
+        analysis_dict["previous move"] = last_move_san
+        analysis_dict["previous move done by"] = last_move_turn
+    else:
+        analysis_dict["extra info"] = "This is the first move of the game!"
+    print(best_move)
+    best_move_drop:chess.Piece = best_move.drop
+    if best_move.drop:
+        analysis_dict["calculated best move take"] = f"capture {chess.piece_name(best_move_drop.piece_type)}"
 
     return frontend_dict, analysis_dict
