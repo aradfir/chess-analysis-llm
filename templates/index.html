@@ -289,6 +289,9 @@ function fetchStreamingCommentary() {
         position: 'start',
         onDragStart: onDragStart,
         onDrop: onDrop,
+        onSnapEnd: function() {
+          board.position(game.fen());
+        },
         onMouseoverSquare: onMouseoverSquare,
         onMouseoutSquare: onMouseoutSquare
       });
@@ -410,10 +413,35 @@ function fetchStreamingCommentary() {
     
       function onDrop(source, target) {
         removeLegalityHighlights();
-        const move = game.move({ from: source, to: target, promotion: 'q' });
+        
+        // Check if this is potentially a pawn promotion move
+        const movingPiece = game.get(source);
+        const isPromotion = (movingPiece && movingPiece.type === 'p' && 
+                            ((movingPiece.color === 'w' && target.charAt(1) === '8') || 
+                             (movingPiece.color === 'b' && target.charAt(1) === '1')));
+        
+        // If it's a promotion, let's ask the user what piece they want
+        let promotionPiece = 'q'; // Default to queen
+        if (isPromotion) {
+            const choices = {
+                'q': 'Queen',
+                'r': 'Rook',
+                'n': 'Knight',
+                'b': 'Bishop'
+            };
+            const choice = prompt(`Promote pawn to: (q: Queen, r: Rook, n: Knight, b: Bishop)`, 'q');
+            if (choice && ['q', 'r', 'n', 'b'].includes(choice.toLowerCase())) {
+                promotionPiece = choice.toLowerCase();
+            }
+        }
+        
+        const move = game.move({ from: source, to: target, promotion: promotionPiece });
     
         if (move === null) return 'snapback';
+        
+        // Immediately update the board position to show the promotion piece
         board.position(game.fen());
+        
         // Check if the game is over after the move
         if (game.in_checkmate()) {
             const winner = game.turn() === 'w' ? 'Black' : 'White';
@@ -436,11 +464,11 @@ function fetchStreamingCommentary() {
         const moveHistory = game.history();
         const lastSanMove = moveHistory[moveHistory.length - 1];
         // Update turn indicator and move history
-    updateTurnIndicator();
-    updateMoveHistory()
+        updateTurnIndicator();
+        updateMoveHistory();
         // Send move to server and update analysis
         sendMoveToServer(source, target, game.fen(), lastSanMove.toString());
-          }
+      }
         
                function onMouseoverSquare(square, piece) {
         // Get all legal moves for the hovered square
