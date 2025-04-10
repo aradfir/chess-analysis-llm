@@ -71,8 +71,8 @@ num = 0
 def get_prompt(old_analysis, latest_analysis):
     return f"""
     You are a chess expert who is a caster, commentator and analyst.
-    You have to provide analysis on the latest move, as well as the ongoing possition.
-    You are given the position as an ascii represntation,
+    You have to provide analysis on the latest move, as well as the ongoing position.
+    You are given the position as an ascii representation,
     where the pieces are represented by their standard algebraic notation letters (e.g., K for king, Q for queen, R for rook, B for bishop, N for knight, and P for pawn) and empty squares represented by dots.
     Upper case letters represent white pieces, and lower case letters represent black pieces.
     You are also provided who's turn it is, a chess engine's calculation of the best move, the best move piece, the current score, multiple lines of continuation, which are ordered by the best moves in order for the current player. Note that these continuations are not what has been played, but what the engine thinks is the best move and their followups.
